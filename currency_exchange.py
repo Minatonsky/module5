@@ -2,10 +2,10 @@ import json
 from datetime import datetime, timedelta
 import requests
 
+
 class CurrencyExchange:
     def __init__(self, max_days=10):
         self.max_days = max_days
-
 
     async def execute(self, server, ws, days, currencies):
         days = min(days, self.max_days)
@@ -13,7 +13,6 @@ class CurrencyExchange:
         results = await self.get_currency_rates(days, currencies)
         parsed_results = self.parse_results(results, currencies)
         await server.send_to_clients(f"Currency exchange rates: {json.dumps(parsed_results)}")
-
 
     def parse_results(self, results, currencies):
         parsed_results = []
@@ -32,7 +31,6 @@ class CurrencyExchange:
             parsed_results.append({formatted_date: currency_data})
 
         return parsed_results
-
 
     async def get_currency_rates(self, days, currencies):
         results = []

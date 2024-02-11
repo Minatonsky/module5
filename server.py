@@ -1,6 +1,5 @@
 import json
 import logging
-import websockets
 from websockets import WebSocketServerProtocol
 from websockets.exceptions import ConnectionClosedOK
 from datetime import datetime
@@ -42,7 +41,6 @@ class Server:
         else:
             logging.warning(f"Unknown command: {command}")
 
-
     async def ws_handler(self, ws: WebSocketServerProtocol, path):
         await self.register(ws)
         try:
@@ -58,4 +56,5 @@ class Server:
             await self.unregister(ws)
 
     async def distribute(self, ws: WebSocketServerProtocol, message: str):
-        await self.send_to_clients(f"{ws.name}: {message} ** Please type 'exchange' to get currency rates or type 'exchange 2' to get currency rates for the last two days.")
+        await self.send_to_clients(f"{ws.name}: {message} ** Please type 'exchange' to get currency rates or type "
+                                   f"'exchange 2' to get currency rates for the last two days.")
