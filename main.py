@@ -1,60 +1,21 @@
-import aiohttp
 import asyncio
-import json
-from datetime import datetime, timedelta
+import websockets
 import argparse
+from server import Server
 
 
-async def fetch_currency_rate(date, currencies):
-    async with aiohttp.ClientSession() as session:
-        url = f'https://api.privatbank.ua/p24api/exchange_rates?json&date={date}'
-        async with session.get(url) as response:
-            data = await response.json()
-            return data
-
-
-async def get_currency_rates(days, currencies):
-    today = datetime.today()
-    date_list = [(today - timedelta(days=i)).strftime('%d.%m.%Y') for i in range(days)]
-
-    tasks = [fetch_currency_rate(date, currencies) for date in date_list]
-    results = await asyncio.gather(*tasks)
-
-    return results
-
-def parse_results(results, currencies):
-    parsed_results = []
-    for result, date in zip(results, [datetime.today() - timedelta(days=i) for i in range(len(results))]):
-        formatted_date = date.strftime('%d.%m.%Y')
-        currency_info = result.get('exchangeRate', [])
-        currency_data = {}
-
-        for currency in currency_info:
-            if currency['currency'] in currencies:
-                currency_data[currency['currency']] = {
-                    'sale': currency['saleRate'],
-                    'purchase': currency['purchaseRate']
-                }
-
-        parsed_results.append({formatted_date: currency_data})
-
-    return parsed_results
-
-def main():
-    parser = argparse.ArgumentParser(description='Get currency rates for the last N days.')
-    parser.add_argument('days', type=int, help='Number of days to fetch currency rates')
-    parser.add_argument('--currencies', nargs='+', default=['USD', 'EUR'], help='List of currencies to include in the results')
+async def main():
+    parser = argparse.ArgumentParser(description='WebSocket Server with Currency Exchange and Messaging')
+    parser.add_argument('--port', type=int, default=8080, help='Port for WebSocket server')
+    parser.add_argument('--days', type=int, default=10, help='Number of days for currency exchange rates (maximum 10 days)')
     args = parser.parse_args()
 
-    if args.days > 10:
-        print("Error: Number of days should not exceed 10.")
-        return
+    max_days = max(1, min(args.days, 10))
 
-    loop = asyncio.get_event_loop()
-    results = loop.run_until_complete(get_currency_rates(args.days, args.currencies))
-    parsed_results = parse_results(results, args.currencies)
+    server = Server(max_days=max_days)
+    async with websockets.serve(server.ws_handler, 'localhost', args.port):
+        await asyncio.Future()  # run forever
 
-    print(json.dumps(parsed_results, indent=2))
 
 if __name__ == '__main__':
-    main()
+    asyncio.run(main())
